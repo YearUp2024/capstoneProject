@@ -1,33 +1,74 @@
 package org.yearup.data.mysql;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.yearup.data.CategoryDao;
 import org.yearup.models.Category;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao
-{
-    public MySqlCategoryDao(DataSource dataSource)
-    {
+public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao {
+    private DataSource dataSource;
+
+    @Autowired
+    public MySqlCategoryDao(DataSource dataSource){
         super(dataSource);
+        this.dataSource = dataSource;
     }
 
     @Override
     public List<Category> getAllCategories()
     {
-        // get all categories
-        return null;
+        List<Category> categories = new ArrayList<>();
+
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM easyshop.categories;");
+                ResultSet resultSet = preparedStatement.executeQuery();
+        ){
+            while(resultSet.next()){
+                int categoryId = resultSet.getInt(1);
+                String categoryName = resultSet.getString(2);
+                String categoryDescription = resultSet.getString(3);
+
+                categories.add(new Category(categoryId, categoryName, categoryDescription));
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+        return categories;
     }
 
     @Override
     public Category getById(int categoryId)
     {
-        // get category by id
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "SELECT * \n" +
+                        "FROM easyshop.categories\n" +
+                        "WHERE category_id = ?; ");
+        ){
+            preparedStatement.setInt(1, categoryId);
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                while(resultSet.next()){
+                    int catId = resultSet.getInt(1);
+                    String categoryName = resultSet.getString(2);
+                    String categoryDescription = resultSet.getString(3);
+
+                    return new Category(catId, categoryName, categoryDescription);
+                }
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
         return null;
     }
 
