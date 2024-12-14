@@ -1,15 +1,13 @@
 package org.yearup.data.mysql;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Component;
 import org.yearup.data.CategoryDao;
 import org.yearup.models.Category;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,14 +73,47 @@ public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao {
     @Override
     public Category create(Category category)
     {
-        // create a new category
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "INSERT INTO easyshop.categories(name, description)\n" +
+                        "VALUES (?, ?);", Statement.RETURN_GENERATED_KEYS)
+        ){
+            preparedStatement.setString(1, category.getName());
+            preparedStatement.setString(2, category.getDescription());
+
+            int rowsEffected = preparedStatement.executeUpdate();
+            if(rowsEffected > 0){
+                ResultSet generatedKey = preparedStatement.getGeneratedKeys();
+                if(generatedKey.next()){
+                    int categoryId = generatedKey.getInt(1);
+                    return getById(categoryId);
+                }
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
         return null;
     }
 
     @Override
     public void update(int categoryId, Category category)
     {
-        // update category
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "UPDATE easyshop.categories\n" +
+                        "SET name = ?, description = ?\n" +
+                        "WHERE category_id = ?;");
+        ){
+            preparedStatement.setString(1, category.getName());
+            preparedStatement.setString(2, category.getDescription());
+            preparedStatement.setInt(3, categoryId);
+
+            preparedStatement.executeUpdate();
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
     }
 
     @Override
