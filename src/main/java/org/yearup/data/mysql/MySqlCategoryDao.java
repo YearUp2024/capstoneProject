@@ -119,7 +119,18 @@ public class MySqlCategoryDao extends MySqlDaoBase implements CategoryDao {
     @Override
     public void delete(int categoryId)
     {
-        // delete category
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "DELETE \n" +
+                        "FROM easyshop.categories\n" +
+                        "WHERE category_id = ?;")
+        ){
+            preparedStatement.setInt(1, categoryId);
+            preparedStatement.executeUpdate();
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
     }
 
     private Category mapRow(ResultSet row) throws SQLException
