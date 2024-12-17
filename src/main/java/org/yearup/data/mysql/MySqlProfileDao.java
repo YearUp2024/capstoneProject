@@ -7,9 +7,12 @@ import org.yearup.data.ProfileDao;
 import javax.sql.DataSource;
 import java.sql.*;
 
+
 @Component
 public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
 {
+    public DataSource dataSource;
+
     public MySqlProfileDao(DataSource dataSource)
     {
         super(dataSource);
@@ -21,7 +24,7 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
         String sql = "INSERT INTO profiles (user_id, first_name, last_name, phone, email, address, city, state, zip) " +
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try(Connection connection = getConnection())
+        try(Connection connection = dataSource.getConnection())
         {
             PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             ps.setInt(1, profile.getUserId());
@@ -44,4 +47,33 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
         }
     }
 
+    @Override
+    public Profile getByUserId(int userId){
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM easyshop.profiles WHERE user_id = ?;");
+        ){
+            preparedStatement.setInt(1, userId);
+
+            try(ResultSet resultSet = preparedStatement.executeQuery()){
+                if(resultSet.next()){
+                    Profile profile = new Profile();
+                    profile.setUserId(resultSet.getInt("user_id"));
+                    profile.setFirstName(resultSet.getString("first_name"));
+                    profile.setLastName(resultSet.getString("last_name"));
+                    profile.setPhone(resultSet.getString("phone"));
+                    profile.setEmail(resultSet.getString("email"));
+                    profile.setAddress(resultSet.getString("address"));
+                    profile.setCity(resultSet.getString("city"));
+                    profile.setState(resultSet.getString("state"));
+                    profile.setZip(resultSet.getString("zip"));
+
+                    return profile;
+                }
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
