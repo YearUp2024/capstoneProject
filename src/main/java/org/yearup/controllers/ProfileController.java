@@ -8,6 +8,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.yearup.data.ProfileDao;
 import org.yearup.models.Profile;
 
+import java.util.List;
+import java.util.Optional;
+
 @RestController
 @RequestMapping("profile")
 @CrossOrigin
@@ -19,12 +22,38 @@ public class ProfileController{
         this.profileDao = profileDao;
     }
 
+    @PostMapping()
+    @PreAuthorize("permitAll()")
+    public Optional<Profile> create(@RequestBody Profile profile){
+        try{
+            return profileDao.create(profile);
+        }
+        catch(Exception ex){
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+        }
+    }
+
     @GetMapping("{id}")
     @PreAuthorize("permitAll()")
-    public Profile getProfileById(@PathVariable int id){
+    public Optional<Profile> getProfileById(@PathVariable int id){
         if(profileDao.getByUserId(id) == null){
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not Found");
         }
         return profileDao.getByUserId(id);
+    }
+
+    // add the appropriate annotation for a get action
+    @GetMapping("")
+    @PreAuthorize("permitAll()")
+    public List<Profile> getAll(){
+        // find and return all profile
+        return profileDao.getAllProfile();
+    }
+
+    @PutMapping()
+    @PreAuthorize("permitAll()")
+    @ResponseStatus(value = HttpStatus.OK)
+    public Optional<Profile> updateProfile(@RequestBody Profile profile){
+        return profileDao.updateProfile(profile);
     }
 }

@@ -6,6 +6,9 @@ import org.yearup.data.ProfileDao;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 
 @Component
@@ -18,7 +21,7 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
     }
 
     @Override
-    public Profile create(Profile profile)
+    public Optional<Profile> create(Profile profile)
     {
         String sql = "INSERT INTO profiles (user_id, first_name, last_name, phone, email, address, city, state, zip) " +
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -38,7 +41,7 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
 
             ps.executeUpdate();
 
-            return profile;
+            return Optional.of(profile);
         }
         catch (SQLException e)
         {
@@ -47,7 +50,7 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
     }
 
     @Override
-    public Profile getByUserId(int userId){
+    public Optional<Profile> getByUserId(int userId){
         try(
                 Connection connection = getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM easyshop.profiles WHERE user_id = ?;");
@@ -67,12 +70,66 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
                     profile.setState(resultSet.getString("state"));
                     profile.setZip(resultSet.getString("zip"));
 
-                    return profile;
+                    return Optional.of(profile);
                 }
             }
         }catch(SQLException e){
             e.printStackTrace();
             throw new RuntimeException(e);
+        }
+        return null;
+    }
+
+    @Override
+    public List<Profile> getAllProfile() {
+        List<Profile> profile = new ArrayList<>();
+        try(
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM easyshop.profiles;");
+                ResultSet resultSet = preparedStatement.executeQuery();
+        ){
+            while(resultSet.next()){
+                int userId = resultSet.getInt(1);
+                String firstName = resultSet.getString(2);
+                String lastName = resultSet.getString(3);
+                String phone = resultSet.getString(4);
+                String email = resultSet.getString(5);
+                String address = resultSet.getString(6);
+                String city = resultSet.getString(7);
+                String state = resultSet.getString(8);
+                String zip = resultSet.getString(9);
+
+                profile.add(new Profile(userId, firstName, lastName, phone, email, address, city, state, zip));
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+        return profile;
+    }
+
+    @Override
+    public Optional<Profile> updateProfile(Profile profile) {
+        try(
+                Connection connection = getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "UPDATE easyshop.profiles \n" +
+                        "SET first_name = ?, last_name = ?, phone = ?, email = ?, address = ?, city = ?, state = ?, zip = ?\n" +
+                        "WHERE user_id = ?; ");
+        ){
+            preparedStatement.setString(1, profile.getFirstName());
+            preparedStatement.setString(2, profile.getLastName());
+            preparedStatement.setString(3, profile.getPhone());
+            preparedStatement.setString(4, profile.getEmail());
+            preparedStatement.setString(5, profile.getAddress());
+            preparedStatement.setString(6, profile.getCity());
+            preparedStatement.setString(7, profile.getState());
+            preparedStatement.setString(8, profile.getZip());
+            preparedStatement.setInt(9, profile.getUserId());
+
+            preparedStatement.executeUpdate();
+
+        }catch(SQLException e){
+            e.printStackTrace();
         }
         return null;
     }
