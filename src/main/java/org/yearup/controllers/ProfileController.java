@@ -20,7 +20,7 @@ public class ProfileController{
     }
 
     @GetMapping("{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     public Profile getProfileById(@PathVariable int id){
         if(profileDao.getByUserId(id) == null){
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Profile not Found");
