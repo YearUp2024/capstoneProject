@@ -11,7 +11,9 @@ import org.springframework.web.server.ResponseStatusException;
 import org.yearup.data.ProductDao;
 import org.yearup.data.ShoppingCartDao;
 import org.yearup.data.UserDao;
+import org.yearup.models.Product;
 import org.yearup.models.ShoppingCart;
+import org.yearup.models.ShoppingCartItem;
 import org.yearup.models.User;
 
 import java.security.Principal;
@@ -61,7 +63,7 @@ public class ShoppingCartController
 
     // add a POST method to add a product to the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be added
-    @PostMapping("/products/{productId}")
+    @PostMapping("/products/{id}")
     @PreAuthorize("isAuthenticated()")
     public ShoppingCart addProductToCart(Principal principal, @PathVariable int productId){
         try{
@@ -69,19 +71,45 @@ public class ShoppingCartController
             User user = userDao.getByUserName(userName);
             int userId = user.getId();
 
-            return shoppingCartDao.addItems(userId, productId);
+            return shoppingCartDao.addItem(userId, productId);
         }catch(Exception e){
             log.error("Error adding product to cart", e);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Oops... our bad.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
     }
 
     // add a PUT method to update an existing product in the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be updated)
     // the BODY should be a ShoppingCartItem - quantity is the only value that will be updated
+    @PutMapping("/products/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ShoppingCart updateCartItem(Principal principal, @PathVariable int productId, @RequestBody int quantity){
+        try{
+            String userName = principal.getName();
+            User user = userDao.getByUserName(userName);
+            int userId = user.getId();
 
+            return shoppingCartDao.updateCartItem(userId, productId, quantity);
+        }catch(Exception e){
+            log.error("Error updating product in cart", e);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+    }
 
     // add a DELETE method to clear all products from the current users cart
     // https://localhost:8080/cart
+    @DeleteMapping()
+    @PreAuthorize("isAuthenticated()")
+    public ShoppingCart deleteCartItem(Principal principal){
+        try{
+            String userName = principal.getName();
+            User user = userDao.getByUserName(userName);
+            int userId = user.getId();
 
+            return shoppingCartDao.deleteCart(userId);
+        }catch(Exception e){
+            log.error("Error deleting shopping cart", e);
+            return null;
+        }
+    }
 }

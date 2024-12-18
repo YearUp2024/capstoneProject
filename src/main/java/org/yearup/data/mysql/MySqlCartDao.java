@@ -57,7 +57,7 @@ public class MySqlCartDao extends MySqlDaoBase implements ShoppingCartDao {
     }
 
     @Override
-    public ShoppingCart addItems(int userId, int productId) {
+    public ShoppingCart addItem(int userId, int productId) {
         try(
                 Connection connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(
@@ -69,9 +69,51 @@ public class MySqlCartDao extends MySqlDaoBase implements ShoppingCartDao {
 
             preparedStatement.executeUpdate();
 
+            return getByUserId(userId);
         }catch(SQLException e){
             log.error("An error occurred while trying to add the product to the cart.", e);
+            return null;
         }
-        return null;
+    }
+
+    @Override
+    public ShoppingCart updateCartItem(int userId, int productId, int quantity) {
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "UPDATE easyshop.shopping_cart \n" +
+                        "SET quantity = ? \n" +
+                        "WHERE user_id = ? AND product_id = ?;");
+        ){
+            preparedStatement.setInt(1, quantity);
+            preparedStatement.setInt(2, userId);
+            preparedStatement.setInt(3, productId);
+
+            preparedStatement.executeUpdate();
+
+            return getByUserId(userId);
+        }catch(SQLException e){
+            log.error("An error occurred while trying to product the product to the cart.", e);
+            return null;
+        }
+    }
+
+    @Override
+    public ShoppingCart deleteCart(int userId) {
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "DELETE FROM easyshop.shopping_cart\n" +
+                        "WHERE user_id = ?; ");
+        ){
+            preparedStatement.setInt(1, userId);
+
+            preparedStatement.executeUpdate();
+
+            return new ShoppingCart();
+        }catch(SQLException e){
+            log.error("There was an error trying to clear cart, e");
+            return null;
+        }
     }
 }
