@@ -22,7 +22,7 @@ import java.sql.Connection;
 // convert this class to a REST controller
 // only logged in users should have access to these actions
 @RestController
-@RequestMapping("cart")
+@RequestMapping("/cart")
 @CrossOrigin
 public class ShoppingCartController
 {
@@ -40,12 +40,10 @@ public class ShoppingCartController
     }
 
     // each method in this controller requires a Principal object as a parameter
-    @GetMapping("")
+    @GetMapping()
     @PreAuthorize("isAuthenticated()")
-    public ShoppingCart getCart(Principal principal)
-    {
-        try
-        {
+    public ResponseEntity<ShoppingCart> getCart(Principal principal) {
+        try{
             // get the currently logged in username
             String userName = principal.getName();
             // find database user by userId
@@ -53,46 +51,48 @@ public class ShoppingCartController
             int userId = user.getId();
 
             // use the shoppingcartDao to get all items in the cart and return the cart
-            return shoppingCartDao.getByUserId(userId);
+            return ResponseEntity.ok(shoppingCartDao.getByUserId(userId));
         }
-        catch(Exception e)
-        {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Oops... our bad.");
+        catch(Exception e){
+            log.error("Error getting cart", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     // add a POST method to add a product to the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be added
-    @PostMapping("/products/{id}")
-    @PreAuthorize("isAuthenticated()")
-    public ShoppingCart addProductToCart(Principal principal, @PathVariable int productId){
+    @PostMapping("/products/{productId}")
+   // @PreAuthorize("isAuthenticated()")
+   // @PreAuthorize("permitAll()")
+   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
+    public ResponseEntity<ShoppingCart> addProductToCart(Principal principal, @PathVariable int productId){
         try{
             String userName = principal.getName();
             User user = userDao.getByUserName(userName);
             int userId = user.getId();
-
-            return shoppingCartDao.addItem(userId, productId);
+            ShoppingCart result = shoppingCartDao.addProductToCart(userId, productId);
+            return ResponseEntity.ok(result);
         }catch(Exception e){
             log.error("Error adding product to cart", e);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     // add a PUT method to update an existing product in the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be updated)
     // the BODY should be a ShoppingCartItem - quantity is the only value that will be updated
-    @PutMapping("/products/{id}")
-    @PreAuthorize("isAuthenticated()")
-    public ShoppingCart updateCartItem(Principal principal, @PathVariable int productId, @RequestBody int quantity){
+    @PutMapping("/products/{productId}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<ShoppingCart> updateCartItem(Principal principal, @PathVariable int productId, @RequestBody int quantity){
         try{
             String userName = principal.getName();
             User user = userDao.getByUserName(userName);
             int userId = user.getId();
 
-            return shoppingCartDao.updateCartItem(userId, productId, quantity);
+            return ResponseEntity.ok(shoppingCartDao.updateProductInCart(userId, productId, quantity));
         }catch(Exception e){
             log.error("Error updating product in cart", e);
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -100,16 +100,16 @@ public class ShoppingCartController
     // https://localhost:8080/cart
     @DeleteMapping()
     @PreAuthorize("isAuthenticated()")
-    public ShoppingCart deleteCartItem(Principal principal){
+    public ResponseEntity<ShoppingCart> deleteCartItem(Principal principal){
         try{
             String userName = principal.getName();
             User user = userDao.getByUserName(userName);
             int userId = user.getId();
 
-            return shoppingCartDao.deleteCart(userId);
+            return ResponseEntity.ok(shoppingCartDao.clearCart(userId));
         }catch(Exception e){
             log.error("Error deleting shopping cart", e);
-            return null;
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

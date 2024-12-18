@@ -5,7 +5,7 @@ import org.yearup.models.ShoppingCart;
 public interface ShoppingCartDao
 {
     ShoppingCart getByUserId(int userId);
-    ShoppingCart addItem(int userId, int productId);
-    ShoppingCart updateCartItem(int userId, int productId, int quantity);
-    ShoppingCart deleteCart(int userId);
+    ShoppingCart addProductToCart(int userId, int productId);
+    ShoppingCart updateProductInCart(int userId, int productId, int quantity);
+    ShoppingCart clearCart(int userId);
 }
