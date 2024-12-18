@@ -1,5 +1,7 @@
 package org.yearup.data.mysql;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.yearup.data.ProductDao;
@@ -17,6 +19,7 @@ import java.sql.SQLException;
 
 @Component
 public class MySqlCartDao extends MySqlDaoBase implements ShoppingCartDao {
+    private static final Logger log = LoggerFactory.getLogger(MySqlCartDao.class);
     private DataSource dataSource;
     private ProductDao productDao;
 
@@ -51,5 +54,24 @@ public class MySqlCartDao extends MySqlDaoBase implements ShoppingCartDao {
             e.printStackTrace();
         }
         return shoppingCart;
+    }
+
+    @Override
+    public ShoppingCart addItems(int userId, int productId) {
+        try(
+                Connection connection = dataSource.getConnection();
+                PreparedStatement preparedStatement = connection.prepareStatement(
+                        "INSERT INTO easyshop.shopping_cart (user_id, product_id, quantity)\n" +
+                        "VALUES(?, ?, 1);");
+        ){
+            preparedStatement.setInt(1, userId);
+            preparedStatement.setInt(2, productId);
+
+            preparedStatement.executeUpdate();
+
+        }catch(SQLException e){
+            log.error("An error occurred while trying to add the product to the cart.", e);
+        }
+        return null;
     }
 }
