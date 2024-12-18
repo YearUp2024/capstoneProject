@@ -62,9 +62,9 @@ public class ShoppingCartController
     // add a POST method to add a product to the cart - the url should be
     // https://localhost:8080/cart/products/15 (15 is the productId to be added
     @PostMapping("/products/{productId}")
-   // @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("isAuthenticated()")
    // @PreAuthorize("permitAll()")
-   @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
+   /*@PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")*/
     public ResponseEntity<ShoppingCart> addProductToCart(Principal principal, @PathVariable int productId){
         try{
             String userName = principal.getName();
@@ -82,14 +82,15 @@ public class ShoppingCartController
     // https://localhost:8080/cart/products/15 (15 is the productId to be updated)
     // the BODY should be a ShoppingCartItem - quantity is the only value that will be updated
     @PutMapping("/products/{productId}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<ShoppingCart> updateCartItem(Principal principal, @PathVariable int productId, @RequestBody int quantity){
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ShoppingCart> updateCartItem(Principal principal, @PathVariable int productId, @RequestBody ShoppingCartItem quantity){
         try{
             String userName = principal.getName();
             User user = userDao.getByUserName(userName);
             int userId = user.getId();
 
-            return ResponseEntity.ok(shoppingCartDao.updateProductInCart(userId, productId, quantity));
+            ShoppingCart result = shoppingCartDao.updateProductInCart(userId, productId, quantity.getQuantity());
+            return ResponseEntity.ok(result);
         }catch(Exception e){
             log.error("Error updating product in cart", e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
