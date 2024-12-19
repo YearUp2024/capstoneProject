@@ -18,6 +18,7 @@ import org.yearup.models.User;
 
 import java.security.Principal;
 import java.sql.Connection;
+import java.util.Optional;
 
 // convert this class to a REST controller
 // only logged in users should have access to these actions
@@ -42,7 +43,7 @@ public class ShoppingCartController
     // each method in this controller requires a Principal object as a parameter
     @GetMapping()
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ShoppingCart> getCart(Principal principal) {
+    public Optional<ShoppingCart> getCart(Principal principal) {
         try{
             // get the currently logged in username
             String userName = principal.getName();
@@ -51,12 +52,12 @@ public class ShoppingCartController
             int userId = user.getId();
 
             // use the shoppingcartDao to get all items in the cart and return the cart
-            return ResponseEntity.ok(shoppingCartDao.getByUserId(userId));
+            return Optional.of(shoppingCartDao.getByUserId(userId));
         }
         catch(Exception e){
             log.error("Error getting cart", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+        return null;
     }
 
     // add a POST method to add a product to the cart - the url should be
