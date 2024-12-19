@@ -1,5 +1,7 @@
 package org.yearup.data.mysql;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.yearup.models.Profile;
 import org.yearup.data.ProfileDao;
@@ -8,21 +10,17 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
 
 @Component
-public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
-{
+public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao {
+    private static final Logger log = LoggerFactory.getLogger(MySqlProfileDao.class);
 
-    public MySqlProfileDao(DataSource dataSource)
-    {
+    public MySqlProfileDao(DataSource dataSource){
         super(dataSource);
     }
 
     @Override
-    public Optional<Profile> create(Profile profile)
-    {
+    public Profile create(Profile profile) {
         String sql = "INSERT INTO profiles (user_id, first_name, last_name, phone, email, address, city, state, zip) " +
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -38,44 +36,36 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
             ps.setString(7, profile.getCity());
             ps.setString(8, profile.getState());
             ps.setString(9, profile.getZip());
-
             ps.executeUpdate();
 
-            return Optional.of(profile);
+            log.info("Created profile for {}", profile);
+            return profile;
         }
         catch (SQLException e)
         {
+            log.error("There was an error while trying to create a profile", e);
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public Optional<Profile> getByUserId(int userId){
+    public Profile getByUserId(int userId){
+        String sql = "SELECT * FROM easyshop.profiles WHERE user_id = ?;";
+
         try(
                 Connection connection = getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM easyshop.profiles WHERE user_id = ?;");
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
         ){
             preparedStatement.setInt(1, userId);
 
             try(ResultSet resultSet = preparedStatement.executeQuery()){
                 if(resultSet.next()){
-                    Profile profile = new Profile();
-                    profile.setUserId(resultSet.getInt("user_id"));
-                    profile.setFirstName(resultSet.getString("first_name"));
-                    profile.setLastName(resultSet.getString("last_name"));
-                    profile.setPhone(resultSet.getString("phone"));
-                    profile.setEmail(resultSet.getString("email"));
-                    profile.setAddress(resultSet.getString("address"));
-                    profile.setCity(resultSet.getString("city"));
-                    profile.setState(resultSet.getString("state"));
-                    profile.setZip(resultSet.getString("zip"));
-
-                    return Optional.of(profile);
+                    return mapToRow(resultSet);
                 }
             }
         }catch(SQLException e){
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            log.error("There was an error while trying to retrieve profile for user: " + userId, e);
+            throw new RuntimeException("An error occurred", e);
         }
         return null;
     }
@@ -83,32 +73,25 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
     @Override
     public List<Profile> getAllProfile() {
         List<Profile> profile = new ArrayList<>();
+        String sql = "SELECT * FROM easyshop.profiles;";
+
         try(
                 Connection connection = getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM easyshop.profiles;");
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
                 ResultSet resultSet = preparedStatement.executeQuery();
         ){
             while(resultSet.next()){
-                int userId = resultSet.getInt(1);
-                String firstName = resultSet.getString(2);
-                String lastName = resultSet.getString(3);
-                String phone = resultSet.getString(4);
-                String email = resultSet.getString(5);
-                String address = resultSet.getString(6);
-                String city = resultSet.getString(7);
-                String state = resultSet.getString(8);
-                String zip = resultSet.getString(9);
-
-                profile.add(new Profile(userId, firstName, lastName, phone, email, address, city, state, zip));
+                profile.add(mapToRow(resultSet));
             }
+            return profile;
         }catch(SQLException e){
-            e.printStackTrace();
+            log.error("Error while trying to retrieve all profiles", e);
+            throw new RuntimeException("Error while trying to retrieve data", e);
         }
-        return profile;
     }
 
     @Override
-    public Optional<Profile> updateProfile(Profile profile) {
+    public Profile updateProfile(Profile profile) {
         try(
                 Connection connection = getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement(
@@ -126,11 +109,31 @@ public class MySqlProfileDao extends MySqlDaoBase implements ProfileDao
             preparedStatement.setString(8, profile.getZip());
             preparedStatement.setInt(9, profile.getUserId());
 
-            preparedStatement.executeUpdate();
-
+            int rows = preparedStatement.executeUpdate();
+            if(rows > 0){
+                log.info("Profile updated: {}", profile);
+                return profile;
+            }else{
+                return null;
+            }
         }catch(SQLException e){
+            log.error("There was an error while trying to update profile ", e);
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Profile mapToRow(ResultSet rs) throws SQLException {
+        Profile profile = new Profile();
+        profile.setUserId(rs.getInt("user_id"));
+        profile.setFirstName(rs.getString("first_name"));
+        profile.setLastName(rs.getString("last_name"));
+        profile.setPhone(rs.getString("phone"));
+        profile.setEmail(rs.getString("email"));
+        profile.setAddress(rs.getString("address"));
+        profile.setCity(rs.getString("city"));
+        profile.setState(rs.getString("state"));
+        profile.setZip(rs.getString("zip"));
+        return profile;
     }
 }
