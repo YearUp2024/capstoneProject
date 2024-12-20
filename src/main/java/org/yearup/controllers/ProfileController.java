@@ -49,7 +49,7 @@ public class ProfileController{
     // add the appropriate annotation for a get action
     @GetMapping("")
     @PreAuthorize("permitAll()")
-    public Profile getAll(Principal principal){
+    public Profile getAllProfile(Principal principal){
         String userName = principal.getName();
         User user = userDao.getByUserName(userName);
         int userId = user.getId();
